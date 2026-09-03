@@ -88,7 +88,22 @@ def like_post(post_id: int, current_user: str = Depends(decode_token), db: Sessi
     else:
         return {"message": "already liked"}
 
+
+
+@app.delete("/posts/{post_id}/like")
+def delete_like(post_id: int, current_user: str = Depends(decode_token), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == current_user).first()
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+
+    existing_like = db.query(models.Like).filter(models.Like.user_id == user.id, models.Like.post_id == post.id).first()
     
+    if existing_like is None:
+        return {"error": "you havent liked this post"}
+    if existing_like:
+        db.delete(existing_like)
+        db.commit()
+        return {"succes": "like succesfully deleted"}
+        
 
 @app.get("/posts")
 def list_posts(db: Session = Depends(get_db)):
