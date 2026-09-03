@@ -86,3 +86,19 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
         return {"error": "post not found"}
     return post
 
+
+@app.delete("/posts/{post_id}")
+def delete_post(post_id: int, current_user: str = Depends(decode_token), db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    
+    if not post:
+        return {"error": "post not found"}
+    
+    user = db.query(models.User).filter(models.User.username == current_user).first()
+    if post.owner_id != user.id:
+        return {"error": "you are not the owner of this post"}
+   
+    db.delete(post)
+    db.commit()
+
+    return {"message": "post deleted"}
