@@ -73,11 +73,29 @@ def create_post(post: PostCreate, current_user: str = Depends(decode_token), db:
     return {"id": new_post.id, "content": new_post.content, "owner_id": new_post.owner_id}
 
 
+@app.post("/posts/{post_id}/like")
+def like_post(post_id: int, current_user: str = Depends(decode_token), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == current_user).first()
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+
+    existing_like = db.query(models.Like).filter(models.Like.user_id == user.id, models.Like.post_id == post.id).first()
+    if existing_like is None:
+        like  = models.Like(user_id=user.id, post_id=post.id)
+        db.add(like)
+        db.commit()
+        db.refresh(like)
+        return {"message": "post liked"}
+    else:
+        return {"message": "already liked"}
+
+    
 
 @app.get("/posts")
 def list_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
     return posts
+
+
 
 @app.get("/posts/{post_id}")
 def get_post(post_id: int, db: Session = Depends(get_db)):
@@ -87,10 +105,13 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
     return post
 
 
+
+
+
 @app.delete("/posts/{post_id}")
 def delete_post(post_id: int, current_user: str = Depends(decode_token), db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
-    
+
     if not post:
         return {"error": "post not found"}
     
