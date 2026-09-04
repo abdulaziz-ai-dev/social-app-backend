@@ -155,3 +155,10 @@ def add_comment(post_id: int, comment: Comment_create, current_user: str = Depen
     db.commit()
     db.refresh(new_comment)
     return {"comment": "your comment succesfully added"}
+
+
+
+@app.get("/posts/{post_id}/comments")
+def get_comments(post_id: int, db: Session = Depends(get_db)):
+    comments = db.query(models.Comment).filter(models.Comment.post_id == post_id).all()
+    return comments
