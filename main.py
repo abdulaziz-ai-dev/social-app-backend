@@ -138,3 +138,20 @@ def delete_post(post_id: int, current_user: str = Depends(decode_token), db: Ses
     db.commit()
 
     return {"message": "post deleted"}
+
+
+class Comment_create(BaseModel):
+    content: str
+
+@app.post("/posts/{post_id}/comments")
+def add_comment(post_id: int, comment: Comment_create, current_user: str = Depends(decode_token), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == current_user).first()
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if post is None:
+        return {"error": "we couldnt find the post"}
+    
+    new_comment = models.Comment(content = comment.content, owner_id = user.id, post_id = post.id)
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+    return {"comment": "your comment succesfully added"}
