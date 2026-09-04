@@ -162,3 +162,53 @@ def add_comment(post_id: int, comment: Comment_create, current_user: str = Depen
 def get_comments(post_id: int, db: Session = Depends(get_db)):
     comments = db.query(models.Comment).filter(models.Comment.post_id == post_id).all()
     return comments
+
+
+@app.post("/users/{user_id}/follow")
+def follow_user(user_id: int, current_user: str = Depends(decode_token), db: Session = Depends(get_db)):
+    follower = db.query(models.User).filter(models.User.username == current_user).first()
+    if follower is None:
+        return {"error": "sign in"}
+
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if target_user is None:
+        return {"error": "no such user"}
+
+    if follower.id == user_id:
+        return {"error": "you cannot follow yourself"}
+
+    existing_follow = db.query(models.Follow).filter(
+        models.Follow.follower_id == follower.id,
+        models.Follow.following_id == user_id
+    ).first()
+
+    if existing_follow is not None:
+        return {"error": "already following this user"}
+
+    new_follow = models.Follow(follower_id=follower.id, following_id=user_id)
+    db.add(new_follow)
+    db.commit()
+    db.refresh(new_follow)
+    return {"follow": "you followed successfully"}
+
+
+
+@app.delete("/users/{user_id}/follow")
+def unfollow_user(user_id: int, current_user: str = Depends(decode_token), db: Session = Depends(get_db)):
+
+    follower = db.query(models.User).filter(models.User.username == current_user).first()
+    if follower is None:
+        return {"error": "sign in"}
+
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if target_user is None:
+        return {"error": "no such user"}
+
+    existing_follow = db.query(models.Follow).filter(models.Follow.follower_id == follower.id, models.Follow.following_id == user_id).first()
+
+    if existing_follow is None:
+        return {"follow": "you didnt followed this user"}
+
+    db.delete(existing_follow)
+    db.commit()
+    return {"unfollow": "you unfollowed succesfully"}
